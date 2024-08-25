@@ -2,129 +2,109 @@ package org.example.queue;
 
 import java.util.*;
 
-public class ´Ù¸®¸¦_Áö³ª´Â_Æ®·° {
+// return: ë‹¤ë¦¬ ê±´ë„ˆëŠ”ë° ê±¸ë¦¬ëŠ” ìµœì†Œ ì‹œê°„
+
+// bridge_length: ë‹¤ë¦¬ì— ì˜¬ë¼ê°ˆ ìˆ˜ ìˆëŠ” íŠ¸ëŸ­ ìˆ˜ (ìµœëŒ€)
+// weight: ë‹¤ë¦¬ê°€ ê²¬ë”œ ìˆ˜ ìˆëŠ” ë¬´ê²Œ (ìµœëŒ€)
+// - ë¬´ê²Œ ì¸¡ì • ê¸°ì¤€: íŠ¸ëŸ­ì´ ë‹¤ë¦¬ì— ì™„ì „íˆ ì˜¤ë¦„
+
+// íŠ¸ëŸ­ë“¤ì´ ì¼ì°¨ì„  ë‹¤ë¦¬ë¥¼ ê±´ë„˜ (ìˆœì„œëŒ€ë¡œ)
+// íŠ¸ëŸ­ì€ ë‹¨ìœ„ì‹œê°„ë‹¹ ë‹¨ìœ„ê±°ë¦¬ë¥¼ ì´ë™í•  ìˆ˜ ìˆìŒ (1)
+
+// bridge_length: 2
+// weight: 10
+// truck_weights: 7 4 5 6
+
+//                   (2)(10)
+// ì‹œì  | ëŒ€ê¸° íŠ¸ëŸ­ |    ê±´ë„ˆëŠ” íŠ¸ëŸ­   |  ê±´ë„Œ íŠ¸ëŸ­
+//  0        X          X                X
+//  1      4 5 6      7 (ì˜¬ë¼ì˜´)          X
+
+// ê°™ì´ ê±´ë„ ìˆ˜ ìˆëŠ”ì§€ í™•ì¸ (capacity check && weight check)
+//  2      4 5 6      7 (ë„˜ì–´ê°)          X
+//  3      5 6        4 (ì˜¬ë¼ì˜´)          7
+
+// ê°™ì´ ê±´ë„ ìˆ˜ ìˆëŠ”ì§€ í™•ì¸ (capacity check && weight check)
+//  4       6       4 (ë„˜ì–´ê°) 5 (ì˜¬ë¼ì˜´)  7
+
+// ê°™ì´ ê±´ë„ ìˆ˜ ìˆëŠ”ì§€ í™•ì¸ (capacity check && weight check)
+//  5       6          5 (ë„˜ì–´ê°)        7 4
+
+//  6       6          6 (ì˜¬ë¼ì˜´)        7 4
+//  7       X          6 (ë„˜ì–´ê°)        7 4 5
+//  8       X          X                7 4 5 6
+
+public class ë‹¤ë¦¬ë¥¼_ì§€ë‚˜ëŠ”_íŠ¸ëŸ­ {
+
+    static Queue<Truck> trucksToWait, trucksOnBridge;
+    static int capCount, capWeight, curBridgeWeight;
 
     public static void main(String[] args) {
         System.out.println(solution(2, 10, new int[]{7, 4, 5, 6}));
+//        System.out.println(solution(100, 100, new int[]{10}));
+//        System.out.println(solution(100, 100, new int[]{10,10,10,10,10,10,10,10,10,10}));
     }
 
-    // return: ´Ù¸® °Ç³Ê´Âµ¥ °É¸®´Â ÃÖ¼Ò ½Ã°£
-
-    // bridge_length: ´Ù¸®¿¡ ¿Ã¶ó°¥ ¼ö ÀÖ´Â Æ®·° ¼ö (ÃÖ´ë)
-    // weight: ´Ù¸®°¡ °ßµô ¼ö ÀÖ´Â ¹«°Ô (ÃÖ´ë)
-    // - ¹«°Ô ÃøÁ¤ ±âÁØ: Æ®·°ÀÌ ´Ù¸®¿¡ ¿ÏÀüÈ÷ ¿À¸§
-
-    // Æ®·°µéÀÌ ÀÏÂ÷¼± ´Ù¸®¸¦ °Ç³Ñ (¼ø¼­´ë·Î)
-
-    // bridge_length: 2
-    // weight: 10
-    // truck_weights: 7 4 5 6
-
-    //                   (2)(10)
-    // ½ÃÁ¡ | ´ë±â Æ®·° |    °Ç³Ê´Â Æ®·°   |  °Ç³Í Æ®·°
-    //  0        X          X                X
-    //  1      4 5 6      7 (¿Ã¶ó¿È)          X
-
-    // °°ÀÌ °Ç³Î ¼ö ÀÖ´ÂÁö È®ÀÎ (capacity check && weight check)
-    //  2      4 5 6      7 (³Ñ¾î°¨)          X
-    //  3      5 6        4 (¿Ã¶ó¿È)          7
-
-    // °°ÀÌ °Ç³Î ¼ö ÀÖ´ÂÁö È®ÀÎ (capacity check && weight check)
-    //  4       6       4 (³Ñ¾î°¨) 5 (¿Ã¶ó¿È)  7
-
-    // °°ÀÌ °Ç³Î ¼ö ÀÖ´ÂÁö È®ÀÎ (capacity check && weight check)
-    //  5       6          5 (³Ñ¾î°¨)        7 4
-
-    //  6       6          6 (¿Ã¶ó¿È)        7 4
-    //  7       X          6 (³Ñ¾î°¨)        7 4 5
-    //  8       X          X                7 4 5 6
-
-    static int capCount, capWeight, curSumOfOntoRoadTruckWeight;
-    static Queue<Truck> trucksOntoRoad, trucksToWait;
-
     public static int solution(int bridge_length, int weight, int[] truck_weights) {
-        int time = 0;
+        int timeElapsed = 0;
+        capCount = bridge_length;
+        capWeight = weight;
 
-        int capCount = bridge_length, capWeight = weight;
         trucksToWait = new ArrayDeque<>(Arrays.stream(truck_weights).boxed().map(Truck::new).toList());
-        trucksOntoRoad = new ArrayDeque<>(capCount);
-        curSumOfOntoRoadTruckWeight = 0;
+        trucksOnBridge = new ArrayDeque<>(capCount);
+        curBridgeWeight = 0;
 
-        while (true) {
-            time++;
+        while (allTrucksCrossedBridge()) {
+            timeElapsed++;
 
-            if (trucksToWait.isEmpty() && trucksOntoRoad.isEmpty()) break;
+            trucksOnBridge.forEach(Truck::move);
 
-            while (!trucksToWait.isEmpty() && canOntoRoad()) {
-                curSumOfOntoRoadTruckWeight += trucksToWait.peek().weight;
-                trucksOntoRoad.offer(trucksToWait.poll());
-                trucksOntoRoad.peek().ontoRoad();
+            while (canCrossTheBridge()) {
+                Truck passedTruck = trucksOnBridge.poll();
+                curBridgeWeight -= passedTruck.weight;
             }
 
-            if (!trucksOntoRoad.isEmpty() && canPass()) trucksOntoRoad.stream().takeWhile(Truck::isOntoRoad).forEach(Truck::pass);
+            if (canAddTruckToBridge()) {
+                Truck truckToEnter = trucksToWait.poll();
+                curBridgeWeight += truckToEnter.weight;
 
-            // TODO: Æ®·° ³Ñ±â±â (pass -> passed)
-            if (!trucksOntoRoad.isEmpty() && canThroughBridge()) {
-                trucksOntoRoad.stream().takeWhile(Truck::isPass).forEach(t -> trucksOntoRoad.poll());
+                truckToEnter.move();
+                trucksOnBridge.offer(truckToEnter);
             }
         }
 
-        return time;
+        return timeElapsed;
     }
 
-    private static boolean canOntoRoad() {
-        // TODO: Æ®·°ÀÌ µµ·Î¿¡ ¿Ã¶ó¿Ã ¼ö ÀÖ´ÂÁö Ã¼Å© (capWeight, capCount)
-        // 1. capWeight
-        Truck peekTruck = trucksToWait.peek();
-        if (curSumOfOntoRoadTruckWeight + peekTruck.weight > capWeight) return false;
-
-        // 2. capCount
-        if (trucksOntoRoad.size() >= capCount) return false;
-
-        return true;
+    private static boolean allTrucksCrossedBridge() {
+        return !trucksToWait.isEmpty() || !trucksOnBridge.isEmpty();
     }
 
-    private static boolean canPass() {
-        if (trucksOntoRoad.peek().isOntoRoad()) return true;
-
-        return false;
+    private static boolean canCrossTheBridge() {
+        return !trucksOnBridge.isEmpty() && 
+                trucksOnBridge.peek().hasReachedEndOfBridge(capCount);
     }
 
-    private static boolean canThroughBridge() {
-        if (trucksOntoRoad.peek().isPass()) return true;
-
-        return false;
+    private static boolean canAddTruckToBridge() {
+        return !trucksToWait.isEmpty() && 
+                trucksOnBridge.size() < capCount && 
+                curBridgeWeight + trucksToWait.peek().weight <= capWeight;
     }
 
     static class Truck {
-        private static final int WAITING = -100;
-        private static final int ONTO_ROAD = 100;
-        private static final int PASS = 200;
-        int status, weight;
+        final int weight;
+        int position;
 
         public Truck(int weight) {
             this.weight = weight;
-            this.status = WAITING;
         }
 
-        public void ontoRoad() {
-            this.status = ONTO_ROAD;
+        public void move() {
+            position++;
         }
 
-        public void pass()  {
-            this.status = PASS;
-        }
-
-        public boolean isWaiting() {
-            return this.status == WAITING;
-        }
-
-        public boolean isOntoRoad() {
-            return this.status == ONTO_ROAD;
-        }
-
-        public boolean isPass() {
-            return this.status == PASS;
+        public boolean hasReachedEndOfBridge(int endOfBridge) {
+            return position > endOfBridge;
         }
     }
 }
